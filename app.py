@@ -4,11 +4,12 @@ import base64
 from PIL import Image
 from io import BytesIO
 
-# ---------------------- 从Streamlit Secrets读取密钥 ----------------------
-API_KEY = st.secrets["KSD4YiH1a7CipcseQHwQmObH"]
-SECRET_KEY = st.secrets["8JnJNnoXD7o9aZxlAL52rfyr6aRyelIx"]
+# ---------------------- 直接在这里填你的百度密钥，不用配置Secrets ----------------------
+API_KEY = "KSD4YiH1a7CipcseQHwQmObH"
+SECRET_KEY = "8JnJNnoXD7o9aZxlAL52rfyr6aRyelIx"
+UNLOCK_PASSWORD = "123456"
 
-# ---------------------- 获取Access Token（必须步骤） ----------------------
+# ---------------------- 获取Access Token ----------------------
 @st.cache_resource(show_spinner=False)
 def get_access_token():
     url = "https://aip.baidubce.com/oauth/2.0/token"
@@ -72,7 +73,7 @@ if "unlocked" not in st.session_state:
     st.session_state.unlocked = False
 
 def check_password():
-    if st.session_state.password_input == st.secrets["UNLOCK_PASSWORD"]:
+    if st.session_state.password_input == UNLOCK_PASSWORD:
         st.session_state.unlocked = True
         st.success("✅ 解锁成功！")
         st.rerun()
