@@ -3,11 +3,17 @@ import requests
 import base64
 from PIL import Image
 from io import BytesIO
+from openai import OpenAI
 
-# ---------------------- 直接在这里填你的百度密钥，不用配置Secrets ----------------------
+# ---------------------- 密钥配置（记得替换成你自己的） ----------------------
 API_KEY = "KSD4YiH1a7CipcseQHwQmObH"
 SECRET_KEY = "8JnJNnoXD7o9aZxlAL52rfyr6aRyelIx"
 UNLOCK_PASSWORD = "123456"
+OPENAI_API_KEY = "sk-1469e02bcb9f43848ceda3dc41fe0fa8"
+OPENAI_BASE_URL = "https://api.deepseek.com"
+
+# ---------------------- 初始化大模型客户端 ----------------------
+client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
 
 # ---------------------- 获取Access Token ----------------------
 @st.cache_resource(show_spinner=False)
@@ -41,6 +47,31 @@ def detect_face(image_bytes):
     response = requests.post(url, headers=headers, params=params, data=data)
     return response.json()
 
+# ---------------------- 大模型分析函数 ----------------------
+def analyze_pose(pose_data):
+    prompt = f"""
+    你是专业的健身教练，根据下面的人体骨骼关键点数据，分析用户的动作问题，给出纠正建议：
+    {pose_data}
+    要求：用口语化、易懂的方式，分点说明问题和改善方法，不要用专业术语堆砌。
+    """
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+def analyze_face(face_data):
+    prompt = f"""
+    你是专业的护肤顾问，根据下面的人脸肤质分析数据，为用户定制一份美白护肤方案：
+    {face_data}
+    要求：用口语化、易懂的方式，分点说明肤质问题、日常护肤建议和美白方案，不要用专业术语堆砌。
+    """
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
 # ---------------------- 页面配置与样式 ----------------------
 st.set_page_config(
     page_title="AI体态&变美方案定制",
@@ -54,9 +85,28 @@ st.markdown("""
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
-.stButton>button {width:100%; background-color:#4a6cf7; color:white; border-radius:8px; padding:0.75rem; font-weight:bold;}
-.stButton>button:hover {background-color:#3a5ce7;}
-.card {padding:1.5rem; border-radius:1rem; background:#f8f9fa; box-shadow:0 4px 12px rgba(0,0,0,0.05); margin-bottom:1rem;}
+.stButton>button {
+    width:100%; 
+    background-color:#4a6cf7; 
+    color:white; 
+    border-radius:8px; 
+    padding:0.75rem; 
+    font-weight:bold;
+    font-size:1.1rem;
+}
+.stButton>button:hover {
+    background-color:#3a5ce7;
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+.card {
+    padding:1.5rem; 
+    border-radius:1rem; 
+    background:#f8f9fa; 
+    box-shadow:0 4px 12px rgba(0,0,0,0.05); 
+    margin-bottom:1rem;
+    text-align: center;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -64,9 +114,19 @@ header {visibility: hidden;}
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3204/3204123.png", width=100)
     st.title("AI体态&变美方案")
-    page = st.radio("选择功能", ["首页", "🏋️ 健身动作AI纠错", "🧴 人脸美白方案", "💎 会员说明"])
+    # 用session_state控制页面跳转
+    if "current_page" not in st.session_state:
+        st.session_state.current_page = "首页"
+    page = st.radio(
+        "选择功能",
+        ["首页", "🏋️ 健身动作AI纠错", "🧴 人脸美白方案", "💎 会员说明"],
+        index=["首页", "🏋️ 健身动作AI纠错", "🧴 人脸美白方案", "💎 会员说明"].index(st.session_state.current_page)
+    )
     st.markdown("---")
     st.caption("© 2026 AI体态变美 | 仅作日常参考，不替代医疗建议")
+
+# 更新session_state的当前页面
+st.session_state.current_page = page
 
 # ---------------------- 解锁逻辑 ----------------------
 if "unlocked" not in st.session_state:
@@ -80,7 +140,7 @@ def check_password():
     else:
         st.error("❌ 密码错误，请重试")
 
-# ---------------------- 首页 ----------------------
+# ---------------------- 首页（改成可点击的卡片按钮） ----------------------
 if page == "首页":
     st.title("✨ 你的专属AI体态&变美方案")
     st.subheader("上传动作/自拍，AI为你定制专属指导")
@@ -94,6 +154,11 @@ if page == "首页":
             <p>上传深蹲/硬拉/体态照片，AI骨骼识别+标准动作对比，纠正姿势问题</p >
         </div>
         """, unsafe_allow_html=True)
+        # 点击按钮跳转到对应页面
+        if st.button("进入健身动作纠错", key="pose_btn"):
+            st.session_state.current_page = "🏋️ 健身动作AI纠错"
+            st.rerun()
+
     with col2:
         st.markdown("""
         <div class="card">
@@ -101,12 +166,16 @@ if page == "首页":
             <p>上传自拍，AI分析肤质/痘痘/暗沉，生成专属美白+护肤计划</p >
         </div>
         """, unsafe_allow_html=True)
+        # 点击按钮跳转到对应页面
+        if st.button("进入人脸美白方案", key="face_btn"):
+            st.session_state.current_page = "🧴 人脸美白方案"
+            st.rerun()
 
     st.markdown("""
     <div class="card">
         <h3>💎 解锁完整服务</h3>
         <p>一次性解锁价：9.9元，即可获取：</p >
-        <ul>
+        <ul style="text-align: left; display: inline-block;">
             <li>✅ 健身动作高清对比纠错</li>
             <li>✅ 人脸肤质详细报告+美白方案</li>
             <li>✅ 可下载的完整PDF报告</li>
@@ -135,9 +204,12 @@ elif page == "🏋️ 健身动作AI纠错":
             with col2:
                 with st.spinner("AI正在分析你的动作..."):
                     pose_result = detect_pose(image_bytes)
-                    st.image(image, caption="AI骨骼分析结果（接口已对接，可在后台查看返回数据）", width=300)
+                    st.image(image, caption="AI骨骼分析结果", width=300)
                     st.success("✅ 动作分析完成！")
-                    st.json(pose_result, expanded=False)
+                    # 调用大模型生成分析报告
+                    analysis = analyze_pose(pose_result)
+                    st.markdown("### 📝 AI姿势分析报告")
+                    st.write(analysis)
 
 # ---------------------- 人脸美白方案 ----------------------
 elif page == "🧴 人脸美白方案":
@@ -158,7 +230,10 @@ elif page == "🧴 人脸美白方案":
             with st.spinner("AI正在分析你的肤质..."):
                 face_result = detect_face(image_bytes)
                 st.success("✅ 肤质分析完成！")
-                st.json(face_result, expanded=False)
+                # 调用大模型生成护肤方案
+                analysis = analyze_face(face_result)
+                st.markdown("### 📝 AI护肤&美白方案")
+                st.write(analysis)
 
 # ---------------------- 会员说明 ----------------------
 elif page == "💎 会员说明":
@@ -168,7 +243,7 @@ elif page == "💎 会员说明":
     <div class="card">
         <h3>一次性解锁服务</h3>
         <p>解锁价：9.9元</p >
-        <ul>
+        <ul style="text-align: left; display: inline-block;">
             <li>✅ 健身动作AI骨骼识别+标准动作对比纠错</li>
             <li>✅ 人脸自拍肤质检测+美白护肤方案</li>
             <li>✅ 可下载的完整PDF报告</li>
@@ -176,3 +251,5 @@ elif page == "💎 会员说明":
         </ul>
     </div>
     """, unsafe_allow_html=True)
+
+
