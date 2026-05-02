@@ -1,6 +1,46 @@
 import streamlit as st
+import requests
+import base64
+from PIL import Image
+from io import BytesIO
 
-# 全局配置
+# ---------------------- 从Streamlit Secrets读取密钥 ----------------------
+API_KEY = st.secrets["KSD4YiH1a7CipcseQHwQmObH"]
+SECRET_KEY = st.secrets["8JnJNnoXD7o9aZxlAL52rfyr6aRyelIx"]
+
+# ---------------------- 获取Access Token（必须步骤） ----------------------
+@st.cache_resource(show_spinner=False)
+def get_access_token():
+    url = "https://aip.baidubce.com/oauth/2.0/token"
+    params = {"grant_type": "client_credentials", "client_id": API_KEY, "client_secret": SECRET_KEY}
+    response = requests.post(url, params=params)
+    return response.json()["access_token"]
+
+# ---------------------- 人体关键点检测接口 ----------------------
+def detect_pose(image_bytes):
+    access_token = get_access_token()
+    url = "https://aip.baidubce.com/rest/2.0/image-classify/v1/body_analysis"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {"image": base64.b64encode(image_bytes).decode("utf-8")}
+    params = {"access_token": access_token}
+    response = requests.post(url, headers=headers, params=params, data=data)
+    return response.json()
+
+# ---------------------- 人脸检测与属性分析接口 ----------------------
+def detect_face(image_bytes):
+    access_token = get_access_token()
+    url = "https://aip.baidubce.com/rest/2.0/face/v3/detect"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {
+        "image": base64.b64encode(image_bytes).decode("utf-8"),
+        "image_type": "BASE64",
+        "face_field": "age,gender,skin_status,quality,emotion,face_shape"
+    }
+    params = {"access_token": access_token}
+    response = requests.post(url, headers=headers, params=params, data=data)
+    return response.json()
+
+# ---------------------- 页面配置与样式 ----------------------
 st.set_page_config(
     page_title="AI体态&变美方案定制",
     page_icon="✨",
@@ -8,7 +48,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 隐藏默认控件 + 美化样式
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
@@ -20,7 +59,7 @@ header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# 侧边栏导航
+# ---------------------- 侧边栏导航 ----------------------
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3204/3204123.png", width=100)
     st.title("AI体态&变美方案")
@@ -28,13 +67,10 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2026 AI体态变美 | 仅作日常参考，不替代医疗建议")
 
-# 初始化session
-if "step" not in st.session_state:
-    st.session_state.step = 1
+# ---------------------- 解锁逻辑 ----------------------
 if "unlocked" not in st.session_state:
     st.session_state.unlocked = False
 
-# 密码验证逻辑
 def check_password():
     if st.session_state.password_input == st.secrets["UNLOCK_PASSWORD"]:
         st.session_state.unlocked = True
@@ -43,7 +79,7 @@ def check_password():
     else:
         st.error("❌ 密码错误，请重试")
 
-# 首页
+# ---------------------- 首页 ----------------------
 if page == "首页":
     st.title("✨ 你的专属AI体态&变美方案")
     st.subheader("上传动作/自拍，AI为你定制专属指导")
@@ -77,10 +113,10 @@ if page == "首页":
     </div>
     """, unsafe_allow_html=True)
 
-# 健身动作AI纠错页面
+# ---------------------- 健身动作AI纠错 ----------------------
 elif page == "🏋️ 健身动作AI纠错":
     st.title("🏋️ 健身动作AI纠错")
-    st.markdown("上传你的健身动作照片，AI帮你对比标准动作，找出姿势问题")
+    st.markdown("上传你的健身动作照片，AI帮你分析骨骼关键点，快速发现姿势问题")
     st.markdown("---")
 
     if not st.session_state.unlocked:
@@ -90,10 +126,19 @@ elif page == "🏋️ 健身动作AI纠错":
     else:
         uploaded_file = st.file_uploader("上传你的健身动作照片", type=["jpg", "jpeg", "png"])
         if uploaded_file:
-            st.image(uploaded_file, caption="你的动作", width=400)
-            st.info("AI姿态识别功能正在开发中，解锁后将生成骨骼对比图和纠错指导")
+            image_bytes = uploaded_file.read()
+            image = Image.open(BytesIO(image_bytes))
+            col1, col2 = st.columns(2)
+            with col1:
+                st.image(image, caption="你的原始动作", width=300)
+            with col2:
+                with st.spinner("AI正在分析你的动作..."):
+                    pose_result = detect_pose(image_bytes)
+                    st.image(image, caption="AI骨骼分析结果（接口已对接，可在后台查看返回数据）", width=300)
+                    st.success("✅ 动作分析完成！")
+                    st.json(pose_result, expanded=False)
 
-# 人脸美白方案定制页面
+# ---------------------- 人脸美白方案 ----------------------
 elif page == "🧴 人脸美白方案":
     st.title("🧴 人脸美白方案定制")
     st.markdown("上传你的正面自拍，AI分析肤质，生成专属美白护肤计划")
@@ -106,10 +151,15 @@ elif page == "🧴 人脸美白方案":
     else:
         uploaded_file = st.file_uploader("上传你的正面自拍", type=["jpg", "jpeg", "png"])
         if uploaded_file:
-            st.image(uploaded_file, caption="你的照片", width=400)
-            st.info("AI肤质分析功能正在开发中，解锁后将生成肤质报告和美白方案")
+            image_bytes = uploaded_file.read()
+            image = Image.open(BytesIO(image_bytes))
+            st.image(image, caption="你的照片", width=400)
+            with st.spinner("AI正在分析你的肤质..."):
+                face_result = detect_face(image_bytes)
+                st.success("✅ 肤质分析完成！")
+                st.json(face_result, expanded=False)
 
-# 会员说明页面
+# ---------------------- 会员说明 ----------------------
 elif page == "💎 会员说明":
     st.title("💎 会员服务说明")
     st.markdown("---")
