@@ -1,207 +1,127 @@
-# from openai import OpenAI
-# import streamlit as st
-# from datetime import datetime
-#
-# # ---------------- 只改这里：填你的DeepSeek密钥 ----------------
-# API_KEY = "sk-1469e02bcb9f43848ceda3dc41fe0fa8"
-# # -----------------------------------------------------------
-#
-# # 初始化客户端
-# client = OpenAI(
-#     api_key=API_KEY,
-#     base_url="https://api.deepseek.com"
-# )
-#
-# # 商业心理学高级人设提示词（已帮你调好，直接商用）
-# system_prompt = """
-# 你是「体态美学管理师·小桃」，5年资深久坐族体态/饮食/生活化美白定制顾问，已服务1000+用户。
-# 风格：温柔闺蜜感、专业接地气、不卖药、不做医疗诊断。
-# 输出必须严格按固定排版：
-# 1. 开头暖心专属开场白
-# 2. 分三大模块：体态矫正、一日三餐饮食、生活化美白
-# 3. 每个模块分场景：办公室、居家、懒人版
-# 4. 最后加4周阶段效果预期+坚持鼓励话术
-# 5. 语言通俗，无专业晦涩术语，适合普通人直接照做
-# """
-#
-# # 生成AI方案函数
-# def get_beautiful_plan(user_info):
-#     res = client.chat.completions.create(
-#         model="deepseek-v4-pro",
-#         messages=[
-#             {"role":"system","content":system_prompt},
-#             {"role":"user","content":user_info}
-#         ],
-#         reasoning_effort="high"
-#     )
-#     return res.choices[0].message.content
-#
-# # ---------------- Streamlit网页界面开始 ----------------
-# st.set_page_config(page_title="专属变美方案生成器", page_icon="✨", layout="wide")
-# st.title("✨ 个人专属体态·饮食·美白定制工具")
-# st.subheader("填写你的个人情况，一键生成可落地专属方案")
-#
-# # 输入框
-# user_input = st.text_area(
-#     "请填写你的情况（年龄/身高体重/作息/体态问题/需求）",
-#     placeholder="例：男27岁，187cm，77kg，久坐办公，圆肩驼背、颈前伸，想改善体态、塑形、皮肤提亮",
-#     height=120
-# )
-#
-# # 生成按钮
-# if st.button("🎯 立即生成专属方案", type="primary"):
-#     if not user_input.strip():
-#         st.warning("请先填写你的个人情况再生成！")
-#     else:
-#         with st.spinner("AI正在为你量身定制方案，请稍等..."):
-#             plan = get_beautiful_plan(user_input)
-#             st.success("✅ 方案生成完成")
-#             st.markdown("---")
-#             st.markdown(plan)
-#
-#             # 自动生成可下载的txt文件
-#             now_time = datetime.now().strftime("%Y%m%d%H%M%S")
-#             file_name = f"专属变美方案_{now_time}.txt"
-#             st.download_button(
-#                 label="📥 下载方案到本地",
-#                 data=plan,
-#                 file_name=file_name,
-#                 mime="text/plain"
-#             )
-
-
-from openai import OpenAI
 import streamlit as st
-from datetime import datetime
 
-# -------------------------- 核心配置（只改这里）--------------------------
-# 1. DeepSeek API密钥
-API_KEY = "sk-1469e02bcb9f43848ceda3dc41fe0fa8"
-# 2. 设置解锁密码（用户付款后你发这个密码）
-UNLOCK_PASSWORD = "xiaotao99"
-# 3. 定价设置
-PRICE = "9.9元"
-# -----------------------------------------------------------------------
-
-# 初始化OpenAI客户端
-client = OpenAI(
-    api_key=API_KEY,
-    base_url="https://api.deepseek.com"
-)
-
-# 商业心理学优化AI人设提示词
-system_prompt = """
-你是「体态美学管理师·小桃」，拥有5年久坐族体态矫正、饮食管理、生活化美白定制经验，
-已帮助1000+上班族、学生党改善圆肩驼背、体态不佳、肤色暗沉问题，拒绝任何医疗建议、药品推荐，
-只做普通人可落地、零器械、低成本的日常变美方案，语言亲切接地气，像闺蜜一样专业暖心。
-
-输出格式严格按照以下结构：
-【✨ 专属定制变美方案】
-一、📌 体态矫正计划（分场景）
-1. 办公室摸鱼版（每日5分钟）
-2. 居家放松版（每日10分钟）
-3. 日常习惯矫正
-
-二、🥗 日常饮食指南
-1. 三餐搭配建议（家常食材，易操作）
-2. 避雷&加餐小贴士
-
-三、✨ 低成本美白小技巧
-1. 日常作息习惯
-2. 极简护肤细节
-
-💡 4周效果打卡提醒：
-第1周：缓解身体酸痛，养成基础好习惯
-第2周：体态逐渐挺拔，皮肤状态改善
-第3-4周：体态气质提升，肤色透亮，养成易坚持的变美节奏
-坚持下去，你会遇见更好的自己！
-"""
-
-
-# 生成AI方案函数
-def generate_beautiful_plan(user_info):
-    response = client.chat.completions.create(
-        model="deepseek-v4-pro",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_info}
-        ],
-        reasoning_effort="high"
-    )
-    return response.choices[0].message.content
-
-
-# -------------------------- Streamlit网页界面 --------------------------
-# 页面基础配置
+# 全局配置
 st.set_page_config(
-    page_title="专属变美方案定制",
+    page_title="AI体态&变美方案定制",
     page_icon="✨",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# 页面标题
-st.title("✨ 个人专属变美方案定制工具")
-st.markdown(f"### 完整版方案解锁价：**{PRICE}**")
-st.markdown("---")
+# 隐藏默认控件 + 美化样式
+st.markdown("""
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+.stButton>button {width:100%; background-color:#4a6cf7; color:white; border-radius:8px; padding:0.75rem; font-weight:bold;}
+.stButton>button:hover {background-color:#3a5ce7;}
+.card {padding:1.5rem; border-radius:1rem; background:#f8f9fa; box-shadow:0 4px 12px rgba(0,0,0,0.05); margin-bottom:1rem;}
+</style>
+""", unsafe_allow_html=True)
 
-# 初始化会话状态（记录是否解锁）
-if "is_unlocked" not in st.session_state:
-    st.session_state.is_unlocked = False
+# 侧边栏导航
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/3204/3204123.png", width=100)
+    st.title("AI体态&变美方案")
+    page = st.radio("选择功能", ["首页", "🏋️ 健身动作AI纠错", "🧴 人脸美白方案", "💎 会员说明"])
+    st.markdown("---")
+    st.caption("© 2026 AI体态变美 | 仅作日常参考，不替代医疗建议")
 
-# 付费解锁提示区
-if not st.session_state.is_unlocked:
-    st.warning("⚠️ 请先付款获取解锁密码，即可生成并下载完整定制方案！")
-    st.info("💳 付款方式：微信/支付宝转账，付款后领取解锁密码")
+# 初始化session
+if "step" not in st.session_state:
+    st.session_state.step = 1
+if "unlocked" not in st.session_state:
+    st.session_state.unlocked = False
 
-    # 密码输入框
-    input_pwd = st.text_input("请输入解锁密码", type="password")
-    if st.button("✅ 验证密码解锁完整版"):
-        if input_pwd == UNLOCK_PASSWORD:
-            st.session_state.is_unlocked = True
-            st.success("🎉 密码验证成功！已解锁完整版功能，开始生成你的专属方案吧～")
-            st.rerun()
-        else:
-            st.error("❌ 密码错误，请核对后重新输入！")
+# 密码验证逻辑
+def check_password():
+    if st.session_state.password_input == st.secrets["UNLOCK_PASSWORD"]:
+        st.session_state.unlocked = True
+        st.success("✅ 解锁成功！")
+        st.rerun()
+    else:
+        st.error("❌ 密码错误，请重试")
 
-# 解锁后显示功能区
-if st.session_state.is_unlocked:
-    st.success("✅ 已解锁完整版，可自由生成、下载方案")
+# 首页
+if page == "首页":
+    st.title("✨ 你的专属AI体态&变美方案")
+    st.subheader("上传动作/自拍，AI为你定制专属指导")
     st.markdown("---")
 
-    # 用户信息输入
-    user_input = st.text_area(
-        "请填写你的个人信息",
-        placeholder="例：27岁，187cm，77kg，久坐办公，圆肩驼背、颈前伸，想改善体态+塑形+提亮肤色",
-        height=130
-    )
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        <div class="card">
+            <h3>🏋️ 健身动作AI纠错</h3>
+            <p>上传深蹲/硬拉/体态照片，AI骨骼识别+标准动作对比，纠正姿势问题</p >
+        </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+        <div class="card">
+            <h3>🧴 人脸美白方案定制</h3>
+            <p>上传自拍，AI分析肤质/痘痘/暗沉，生成专属美白+护肤计划</p >
+        </div>
+        """, unsafe_allow_html=True)
 
-    # 生成方案按钮
-    if st.button("🎯 立即生成专属方案", type="primary"):
-        if not user_input.strip():
-            st.warning("请先填写你的个人信息哦～")
-        else:
-            with st.spinner("AI正在为你量身定制方案，请稍候..."):
-                try:
-                    plan_content = generate_beautiful_plan(user_input)
-                    st.markdown("---")
-                    st.markdown("## 📄 你的专属定制方案")
-                    st.markdown(plan_content)
+    st.markdown("""
+    <div class="card">
+        <h3>💎 解锁完整服务</h3>
+        <p>一次性解锁价：9.9元，即可获取：</p >
+        <ul>
+            <li>✅ 健身动作高清对比纠错</li>
+            <li>✅ 人脸肤质详细报告+美白方案</li>
+            <li>✅ 可下载的完整PDF报告</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
 
-                    # 生成可下载文件
-                    now = datetime.now().strftime("%Y%m%d%H%M%S")
-                    filename = f"专属变美方案_{now}.txt"
+# 健身动作AI纠错页面
+elif page == "🏋️ 健身动作AI纠错":
+    st.title("🏋️ 健身动作AI纠错")
+    st.markdown("上传你的健身动作照片，AI帮你对比标准动作，找出姿势问题")
+    st.markdown("---")
 
-                    # 下载按钮
-                    st.download_button(
-                        label="📥 下载方案到本地",
-                        data=plan_content,
-                        file_name=filename,
-                        mime="text/plain",
-                        type="secondary"
-                    )
-                except Exception as e:
-                    st.error(f"方案生成失败，请重试～错误信息：{str(e)}")
+    if not st.session_state.unlocked:
+        st.warning("🔒 此功能需要解锁完整版方案")
+        st.text_input("请输入解锁密码", type="password", key="password_input")
+        st.button("验证密码解锁完整版", on_click=check_password)
+    else:
+        uploaded_file = st.file_uploader("上传你的健身动作照片", type=["jpg", "jpeg", "png"])
+        if uploaded_file:
+            st.image(uploaded_file, caption="你的动作", width=400)
+            st.info("AI姿态识别功能正在开发中，解锁后将生成骨骼对比图和纠错指导")
 
-# 底部说明
-st.markdown("---")
-st.markdown("💡 本方案为个性化定制建议，仅作日常参考，不替代医疗建议")
+# 人脸美白方案定制页面
+elif page == "🧴 人脸美白方案":
+    st.title("🧴 人脸美白方案定制")
+    st.markdown("上传你的正面自拍，AI分析肤质，生成专属美白护肤计划")
+    st.markdown("---")
+
+    if not st.session_state.unlocked:
+        st.warning("🔒 此功能需要解锁完整版方案")
+        st.text_input("请输入解锁密码", type="password", key="password_input")
+        st.button("验证密码解锁完整版", on_click=check_password)
+    else:
+        uploaded_file = st.file_uploader("上传你的正面自拍", type=["jpg", "jpeg", "png"])
+        if uploaded_file:
+            st.image(uploaded_file, caption="你的照片", width=400)
+            st.info("AI肤质分析功能正在开发中，解锁后将生成肤质报告和美白方案")
+
+# 会员说明页面
+elif page == "💎 会员说明":
+    st.title("💎 会员服务说明")
+    st.markdown("---")
+    st.markdown("""
+    <div class="card">
+        <h3>一次性解锁服务</h3>
+        <p>解锁价：9.9元</p >
+        <ul>
+            <li>✅ 健身动作AI骨骼识别+标准动作对比纠错</li>
+            <li>✅ 人脸自拍肤质检测+美白护肤方案</li>
+            <li>✅ 可下载的完整PDF报告</li>
+            <li>✅ 无广告，永久使用当前版本功能</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
